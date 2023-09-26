@@ -25,31 +25,38 @@ def dfs(dislikes, current_node, painted_graph, current_color):
 # 
 
 def color_dfs(adj, node, colors, num_colors):
-    if node in colors:
-       return colors
+    work = colors.copy()
+    if node in work:
+       return work
     
     coloration = None
-    neighbor_colors = set(colors.get(n) for n in adj[node])
+    neighbor_colors = set(work.get(n) for n in adj[node])
+    node_work = work
     for color in range(num_colors):
         found_coloration = True
         if color not in neighbor_colors:
-            colors[node] = color
+            work[node] = color
             for neighbor in adj[node]:
-                coloration = color_dfs(adj, neighbor, colors, num_colors)
+                coloration = color_dfs(adj, neighbor, work, num_colors)
                 if coloration is None:
                     # could not color neighbors with current color
-                    colors.pop(node)  # undo the color assignment for this node (children have already been undone)
+                    # not sufficient solely to pop the current node, as a prior neighbor "branch"
+                    # could have already been colored, and changing the current node color could
+                    # invalidate that branch, so we need to restore the entire color map to what
+                    # it was when we entered this call
+                    work = node_work  # throw away any work done on the neighbors
                     found_coloration = False
                     break
                 else:
-                    colors = coloration
+                    work = coloration
 
             if found_coloration:
                 # if we find a coloration for all neighbors, then we have colored
                 # everything reachable from this node and we're done
-                return colors            
+                return work            
 
     return coloration
+
 
 def find_coloration(adj, num_colors):
     colors = {}
