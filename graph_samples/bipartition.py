@@ -36,6 +36,8 @@ def color_dfs(adj, node, colors, num_colors):
         found_coloration = True
         if color not in neighbor_colors:
             work[node] = color
+            print("descend")
+            print(work)
             for neighbor in adj[node]:
                 coloration = color_dfs(adj, neighbor, work, num_colors)
                 if coloration is None:
@@ -45,6 +47,8 @@ def color_dfs(adj, node, colors, num_colors):
                     # invalidate that branch, so we need to restore the entire color map to what
                     # it was when we entered this call
                     work = node_work  # throw away any work done on the neighbors
+                    print("backtrack")
+                    print(work)
                     found_coloration = False
                     break
                 else:
