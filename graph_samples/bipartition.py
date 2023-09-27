@@ -34,11 +34,15 @@ def color_dfs(adj, node, colors, num_colors):
         found_coloration = True
         if color not in neighbor_colors:
             colors[node] = color
+            print("descend")
+            print(colors)
             for neighbor in adj[node]:
                 coloration = color_dfs(adj, neighbor, colors, num_colors)
                 if coloration is None:
                     # could not color neighbors with current color
+                    print("backtrack")
                     colors.pop(node)  # undo the color assignment for this node (children have already been undone)
+                    print(colors)
                     found_coloration = False
                     break
                 else:
