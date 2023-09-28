@@ -16,13 +16,26 @@ def dfs(dislikes, current_node, painted_graph, current_color):
     
     return True
 
-# to color a node
-# if already colored, done
-# make a working copy of the current colors
-# set current color to the lowest color that doesn't conflict with neighbors
-# try to color each neighbor
-# if we fail to color a neighbor
-# 
+# learn implementation for detecting a bipartite graph
+# for each node (to handle disconnected graphs), perform a dfs that colors each
+# visited node in alternating colors. As soon as we can find a conflict
+# (adjacent nodes with the same color) we know this is not colorable with 2 colors.
+# NOTE: this observation would not apply to graph colors with k > 2, which require
+# backtracking to check other variants.
+
+# def possible_bipartition(dislikes):
+#     painted_graph = {}
+#     current_color = 0
+
+#     for node in dislikes.keys():
+#         neighbors = dislikes[node]
+#         if not painted_graph.get(node):
+#             painted_graph[node] = COLORS[current_color]
+
+#             if not dfs(dislikes=dislikes, current_node=node, painted_graph=painted_graph, current_color=current_color):
+#                 return False
+#     return True
+
 
 def color_dfs(adj, node, colors, num_colors):
     work = colors.copy()
@@ -42,10 +55,6 @@ def color_dfs(adj, node, colors, num_colors):
                 coloration = color_dfs(adj, neighbor, work, num_colors)
                 if coloration is None:
                     # could not color neighbors with current color
-                    # not sufficient solely to pop the current node, as a prior neighbor "branch"
-                    # could have already been colored, and changing the current node color could
-                    # invalidate that branch, so we need to restore the entire color map to what
-                    # it was when we entered this call
                     work = node_work  # throw away any work done on the neighbors
                     print("backtrack")
                     print(work)
@@ -61,39 +70,78 @@ def color_dfs(adj, node, colors, num_colors):
 
     return coloration
 
+# an arbitrary dfs-based graph coloring approach, which can be used to solve
+# bipartitioning, as well as more general coloring (maps, schedules, etc). This
+# is accomplished by using backtracking to undo a step that leads to an uncolorable
+# arrangement. When such an arrangement is found, it is not sufficient solely to 
+# pop the current node from the color data, as a prior neighbor "branch" could 
+# have already been colored, such that artificial restrictions are placed on the
+# next color we attempt (test_challenge_spur_3 presents a graph that exhibits this
+# issue, "locking in" a failed coloration such that even after backtracking, a
+# coloration cannot be found), so we need to restore the entire color map to what
+# it was when we entered this call. The easiest way to do this is by making a local
+# copy of the color info (leading to unfavorable space requirements). Alternatively,
+# we could track the traversed path through the graph and use that to roll back 
+# any color values that were made post coloration of the current node. In the end,
+# there is little benefit to using the edge relationships for the coloring, as we
+# are still making local decisions about the colors that could lead to conflicts
+# further on, just as with the canonical coloring approach.
 
-def find_coloration(adj, num_colors):
-    colors = {}
-    coloration = {}
+# def find_coloration(adj, num_colors):
+#     colors = {}
+#     coloration = {}
 
-    for node in adj.keys():
-        coloration = color_dfs(adj, node, colors, num_colors)
-        if coloration is None:
-            return None
-        else:
-            colors = coloration
+#     for node in adj.keys():
+#         coloration = color_dfs(adj, node, colors, num_colors)
+#         if coloration is None:
+#             return None
+#         else:
+#             colors = coloration
         
-    print(coloration)
-    return coloration
+#     print(coloration)
+#     return coloration
 
     
 
-# def possible_bipartition(dislikes):
-#     painted_graph = {}
-#     current_color = 0
-
-#     for node in dislikes.keys():
-#         neighbors = dislikes[node]
-#         if not painted_graph.get(node):
-#             painted_graph[node] = COLORS[current_color]
-
-#             if not dfs(dislikes=dislikes, current_node=node, painted_graph=painted_graph, current_color=current_color):
-#                 return False
-#     return True
 
 def possible_bipartition(dislikes):
     coloration = find_coloration(dislikes, 2)
     return coloration is not None
+
+def find_coloration_impl(adj, keys, node_idx, colors, num_colors):
+    if node_idx == len(keys):
+        return colors
+    
+    node = keys[node_idx]
+    colors[node] = -1
+    for color in range(num_colors):
+        neighbors = adj[node]
+        neighbor_colors = set(colors.get(n) for n in neighbors)
+        if color not in neighbor_colors:
+            colors[node] = color
+            coloration = find_coloration_impl(adj, keys, node_idx + 1, colors, num_colors)
+            if coloration:
+                return coloration
+            
+    # no valid color
+    colors.pop(node)
+    return None
+
+# a more typical map coloring approach which visits nodes in a fixed, arbitrary
+# order (here, order of the nodes in the graph structure) rather than using
+# edges to traverse. because there is a linear path through the nodes, when
+# backtracking, only the current node needs to be undone (no side branches)
+def find_coloration(adj, num_colors):
+    colors = {}
+
+    keys = list(adj.keys())
+    coloration = find_coloration_impl(adj, keys, 0, colors, num_colors)
+    if coloration is None:
+        return None
+        
+    print(coloration)
+    return coloration
+
 
 MAZE_WALL = "#"
 MAZE_CORRIDOR = " "
