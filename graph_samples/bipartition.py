@@ -143,9 +143,92 @@ def find_coloration(adj, num_colors):
     return coloration
 
 
+# constants representing the walls and corridor
 MAZE_WALL = "#"
 MAZE_CORRIDOR = " "
 
+# # Builds an adjacency-list based graph from a grid-based maze representation
+# # starting from a supplied (row, column) location.
+# # The start location isn't strictly necessary to build the graph, but it
+# # saves us from needing to find a corridor space to kick off the rest of the
+# # process from.
+# # Note how similar this process is to a bfs/dfs of a more typical graph. This
+# # illustrates that a grid really can be viewed as a kind of graph with
+# # implicit edges between adjacent cells. Using a pending list is a useful way
+# # to keep track of the cells left to visit. In this case, we don't need a
+# # separate visited list, since adding the location as a key in the adjacency
+# # list allows us to check whether we've already visited that location.
+# def convert_maze_to_graph(maze, start):
+#     graph = {}
+#     pending = set([start])  # use a set for the pending list since we don't
+#                             # particularly care about the order of visitation
+#                             # (a python set will behave more like a queue than
+#                             # a stack), but do want to avoid enqueuing the same
+#                             # location multiple times.
+
+#     while pending:
+#         next = pending.pop()
+#         if next in graph:
+#             # skip this location if it was already visited
+#             continue
+
+#         # Which directions can we move in?
+#         # Check each of the 4 locations by using a delta row and delta column
+#         # pair. Delta typically refers to a change in a value, so here, dr is
+#         # the delta row, the change in value of the row, and dc is the delta
+#         # column, the change in value of the column.
+#         directions = []
+#         for dr, dc in ((-1, 0), (0, 1), (1, 0), (0, -1)):
+#             loc = (next[0] + dr, next[1] + dc)  # calculate the offset location
+
+#             # Use a helper to get the location value, treating invalid locations
+#             # (outside the grid) as though they were walls
+#             if cell_lookup(maze, loc[0], loc[1]) == MAZE_CORRIDOR:
+#                 # Add this computed location to the valid directions from the
+#                 # initial location
+#                 directions.append(loc)
+#                 if loc not in graph:
+#                     pending.add(loc)
+
+#         graph[next] = directions
+
+#     return graph
+
+# Builds an adjacency-list based graph from a grid-based maze representation.
+def convert_maze_to_graph(maze):
+    graph = {}
+
+    # iterate over all the cells in the grid
+    for r in range(len(maze)):
+        for c in range(len(maze[0])):
+            # skip this cell if it's not a corridor
+            if maze[r][c] != MAZE_CORRIDOR:
+                continue
+
+            cell = (r, c)
+
+            # Which directions can we move in?
+            # Check each of the 4 locations by using a delta row and delta 
+            # column pair. Delta typically refers to a change in a value, so 
+            # here, dr is the delta row, the change in value of the row, and dc 
+            # is the delta column, the change in value of the column.
+            directions = []
+            for dr, dc in ((-1, 0), (0, 1), (1, 0), (0, -1)):
+                loc = (cell[0] + dr, cell[1] + dc)  # neighbor location
+
+                # Use a helper to get the location value, treating invalid 
+                # locations (outside the grid) as though they were walls
+                if cell_lookup(maze, loc[0], loc[1]) == MAZE_CORRIDOR:
+                    # Add this computed location to the valid directions from
+                    # current cell
+                    directions.append(loc)
+
+            graph[cell] = directions
+
+    return graph
+
+# Helper method to safely get the value for the cell at the supplied row and
+# columns. Invalid locations (outside the grid) are treated as walls.
 def cell_lookup(maze, r, c):
     if r < 0 or r >= len(maze):
         return MAZE_WALL
