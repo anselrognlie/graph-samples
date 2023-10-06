@@ -239,57 +239,124 @@ def cell_lookup(maze, r, c):
     
     return row[c]
 
-def convert_maze_to_graph(maze, start):
-    graph = {}
+# def find_graph_path(graph, start, end, visited=None, path=None, scratch=None):
+#     if path is None:
+#         path = []
+#         visited = set()
+
+#     if start in visited:
+#         return None
+    
+#     visited.add(start)
+#     if scratch:
+#         scratch[start[0]][start[1]] = "."
+
+#     path.append(start)
+#     if start == end:
+#         return path
+    
+#     for move in graph[start]:
+#         if move in visited:
+#             continue
+
+#         found_path = find_graph_path(graph, move, end, visited, path, scratch)
+#         if found_path:
+#             return path
+        
+#     # couldn't find path
+#     path.pop()
+#     if scratch:
+#         scratch[start[0]][start[1]] = "X"
+
+#     return None
+
+# def find_graph_path(graph, start, end):
+#     visited = set()  # use set for O(1) in lookups
+#     path = []  # list we'll use to track our path through the graph
+#     return find_graph_path_helper(graph, start, end, visited, path)
+
+# def find_graph_path_helper(graph, start, end, visited, path):
+#     # If the node we're about to visit has already been visited, we know this
+#     # path doesn't lead to a solution
+#     if start in visited:
+#         return None
+    
+#     # mark this node as now visited
+#     visited.add(start)
+
+#     # NEW - provisionally consider this node as part of the path
+#     path.append(start)
+
+#     # NEW - If the node is the end that we were looking for, we're done! Return
+#     # the path that we constructed. This differs from basic depth first search
+#     # which traverses through the entire graph. Here, we can stop as soon as we
+#     # find the end node.
+#     if start == end:
+#         return path
+    
+#     # If we reach this point, the node was not the end, but it may have
+#     # neighbors for us to visit.
+#     for move in graph[start]:
+#         # Don't bother traversing to a node that's already been visited. This
+#         # check isn't strictly necessary, but it can save a few recursive calls.
+#         if move in visited:
+#             continue
+
+#         # Try to find a path from this adjacent node to the end. NEW - If a 
+#         # path can be found, this call will return the path. If no path can be 
+#         # found, it will return None.
+#         found_path = find_graph_path_helper(graph, move, end, visited, path)
+
+#         # NEW - If we got a path back, we're done. Continue returning the path
+#         # up the call chain.
+#         if found_path:
+#             return path
+        
+#     # NEW - If we make it through all the neighbors without having found a path
+#     # (we would have returned before reaching this code) then the current node
+#     # is not part of the path.
+#     path.pop()
+
+#     # NEW - We didn't find a path through this node, so return None
+#     return None
+
+# ITERATIVE DFS PATHING WITH BACKTRACK
+def find_graph_path(graph, start, end, path=None, visited=None, scratch=None):
+    path = []
+    visited = set()
+    seen = set()
     pending = [start]
+    depths = [0]
+
     while pending:
+        depth = depths.pop()
+        while len(path) > depth:
+            last_next = path.pop()
+            if scratch:
+                scratch[last_next[0]][last_next[1]] = "X"
+
         next = pending.pop()
-        if next in graph:
+        if next in visited:
             continue
+        
+        visited.add(next)
+        if scratch:
+            scratch[next[0]][next[1]] = "."
 
-        # which directions can we move in?
-        directions = []
-        for dr, dc in ((-1, 0), (0, 1), (1, 0), (0, -1)):
-            loc = (next[0] + dr, next[1] + dc)
-            if cell_lookup(maze, loc[0], loc[1]) == MAZE_CORRIDOR:
-                directions.append(loc)
-                if loc not in graph:
-                    pending.append(loc)
-
-        graph[next] = directions
-
-    return graph
-
-def find_graph_path_from_to(graph, start, end, path=None, visited=None, scratch=None):
-    if path is None:
-        path = []
-        visited = set()
-
-    if start in visited:
-        return None
-    
-    visited.add(start)
-    if scratch:
-        scratch[start[0]][start[1]] = "."
-
-    path.append(start)
-    if start == end:
-        return path
-    
-    for move in graph[start]:
-        if move in visited:
-            continue
-
-        found_path = find_graph_path_from_to(graph, move, end, path, visited, scratch)
-        if found_path:
+        path.append(next)
+        if next == end:
             return path
         
-    # couldn't find path
-    path.pop()
-    if scratch:
-        scratch[start[0]][start[1]] = "X"
+        for move in graph[next]:
+            if move in visited:
+                continue
 
-    return None
+            if move not in seen:
+                seen.add(move)
+                pending.append(move)
+                depths.append(depth + 1)
+
+    return path
 
 def print_maze(maze):
     print()
@@ -298,8 +365,10 @@ def print_maze(maze):
 
 def find_maze_path(maze, start, exit):
     scratch = [list(row) for row in maze]
-    maze_graph = convert_maze_to_graph(maze, start)
+    # maze_graph = convert_maze_to_graph(maze, start)
+    maze_graph = convert_maze_to_graph(maze)
     # print(maze_graph)
-    path = find_graph_path_from_to(maze_graph, start, exit, scratch=scratch)
+    path = find_graph_path(maze_graph, start, exit, scratch=scratch)
+    # path = find_graph_path(maze_graph, start, exit)
     print_maze(scratch)
     return path
